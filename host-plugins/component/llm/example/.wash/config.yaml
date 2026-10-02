@@ -1,0 +1,29 @@
+version: 2.0.0
+
+build:
+  command: cargo build --target wasm32-wasip1 --release
+  component_path: target/wasm32-wasip1/release/llm_chat.wasm
+
+dev:
+  address: 127.0.0.1:8000
+  plugins:
+    # The llm plugin, built from the parent directory. Its model directory is
+    # mounted into the plugin's own store; the workload never sees it.
+    - id: wasmcloud-llm
+      file: ../target/wasm32-wasip1/release/llm_plugin.wasm
+      volumes:
+        - hostPath: ../models/qwen3-0.6b
+          mountPath: /models
+          readOnly: true
+  host_interfaces:
+    # The unlabeled `wasmcloud:llm` binding this workload imports, and the
+    # model that serves it. Paths are inside the plugin's volume.
+    - namespace: wasmcloud
+      package: llm
+      interfaces: [types, inference]
+      version: "0.1.0-draft"
+      config:
+        model: qwen3-0.6b
+        model-path: /models/Qwen3-0.6B-Q8_0.gguf
+        tokenizer-path: /models/tokenizer.json
+        max-tokens: "256"

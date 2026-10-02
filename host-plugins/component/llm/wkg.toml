@@ -1,0 +1,7 @@
+# `wasmcloud:llm` is a draft that is not published to a registry yet, and
+# `wasmcloud:host` is defined by the runtime itself. Both are vendored under
+# wit-deps/ so the plugin builds from a clean checkout; refresh them from
+# wasmCloud's `wit/llm/wit` and `wit/host/wit` when those change.
+[overrides]
+"wasmcloud:llm" = { path = "wit-deps/wasmcloud-llm" }
+"wasmcloud:host" = { path = "wit-deps/wasmcloud-host" }

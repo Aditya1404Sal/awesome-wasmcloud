@@ -1,0 +1,7 @@
+build:
+  # A wasm32-wasip1 core module, which `wash build` wraps into a component
+  # with the WASI reactor adapter — the way wasmCloud builds its own P3
+  # fixtures. Not wasm32-wasip2: Candle reaches `std::os::wasi` through `zip`,
+  # and that module is still unstable on wasip2.
+  command: cargo build --target wasm32-wasip1 --release
+  component_path: target/wasm32-wasip1/release/llm_plugin.wasm

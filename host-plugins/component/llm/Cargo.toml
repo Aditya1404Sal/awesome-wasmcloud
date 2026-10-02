@@ -1,0 +1,32 @@
+[package]
+name = "llm-plugin"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+description = "wasmCloud host component plugin serving wasmcloud:llm from a local GGUF model with Candle"
+publish = false
+
+# A standalone workspace: this directory builds on its own from a clean
+# checkout, independent of anything else in the repository.
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = { version = "0.60", features = ["async-spawn", "inter-task-wakeup"] }
+# Candle from its own repository, pinned: the 0.11.0 release does not compile
+# for wasm32 with `simd128` (its half-precision kernels name SIMD types only
+# x86 and ARM define). Move to the next release once it is out.
+candle-core = { git = "https://github.com/huggingface/candle", rev = "c68b24997319b8d76e5a4e775dab197c7f26322a", default-features = false }
+candle-transformers = { git = "https://github.com/huggingface/candle", rev = "c68b24997319b8d76e5a4e775dab197c7f26322a", default-features = false }
+tokenizers = { version = "0.23", default-features = false, features = ["unstable_wasm"] }
+futures = { version = "0.3", default-features = false, features = ["std"] }
+
+[dev-dependencies]
+futures = { version = "0.3", features = ["executor"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3

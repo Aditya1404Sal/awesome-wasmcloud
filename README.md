@@ -44,7 +44,7 @@ _Nothing here yet. [Add the first one](CONTRIBUTING.md)._
 
 Capabilities built as [WebAssembly components](https://wasmcloud.com/docs/runtime/creating-host-component-plugins) and deployed into a host at runtime as trigger services with a capability ingress, so you ship, version, and sandbox them like any other component. Currently opt-in via the `host-component-plugins` feature, so check the docs for the state of play before depending on one. Hosted projects live in [`host-plugins/component/`](host-plugins/component/).
 
-_Nothing here yet. [Add the first one](CONTRIBUTING.md)._
+- [llm](host-plugins/component/llm/) (hosted): Serves the draft `wasmcloud:llm` inference interface from a Qwen3 GGUF model on the host's disk, run on the CPU with Candle inside the plugin's sandbox, with streamed completions and per-binding model config. Work in progress; needs host-component-plugin volumes from a wasmCloud branch.
 
 ## Workload Examples
 

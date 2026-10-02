@@ -1,0 +1,4 @@
+# Candle's quantized matmul kernels have a wasm SIMD path; wasmtime supports
+# SIMD by default, so there is no reason to ship the scalar fallback.
+[target.wasm32-wasip1]
+rustflags = ["-C", "target-feature=+simd128"]

@@ -1,0 +1,20 @@
+package wasmcloud:llm-plugin@0.1.0;
+
+/// A host component plugin serving `wasmcloud:llm` from a GGUF model on the
+/// host's disk, run in the plugin's own sandbox with Candle.
+///
+/// It exports no `embeddings`: the chat models it runs are not embedding
+/// models, so it serves the narrower world the `wasmcloud:llm` package allows.
+world llm-plugin {
+    /// Which workload, and which `(implements ..)` label, a call arrived on —
+    /// the key to that binding's model config.
+    import wasmcloud:host/identity@0.1.4;
+
+    export wasmcloud:llm/types@0.1.0-draft;
+    export wasmcloud:llm/inference@0.1.0-draft;
+    export wasmcloud:llm/models@0.1.0-draft;
+
+    /// Validates each binding's config when a workload deploys, so a missing
+    /// model file fails the deploy rather than the first request.
+    export wasmcloud:host/workload-lifecycle@0.1.4;
+}

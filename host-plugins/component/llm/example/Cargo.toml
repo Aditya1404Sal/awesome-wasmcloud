@@ -1,0 +1,15 @@
+[package]
+name = "llm-chat"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+description = "Example workload: an HTTP endpoint that streams a wasmcloud:llm completion"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = { version = "0.60", features = ["async-spawn", "inter-task-wakeup"] }

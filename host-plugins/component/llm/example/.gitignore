@@ -1,0 +1,8 @@
+target/
+wit/deps/
+
+# The repository ignores `.wash/` (local wash state), but this project's build
+# and dev config lives there and must be committed.
+!.wash/
+.wash/*
+!.wash/config.yaml
