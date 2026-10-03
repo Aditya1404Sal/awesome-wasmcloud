@@ -49,10 +49,12 @@ type ModelSlot = Arc<Mutex<Option<LocalModel>>>;
 /// A model is identified by the files it loads from.
 type ModelKey = (String, String);
 
+/// One workload's bindings: label (`None` for a plain import) → config.
+type WorkloadBindings = HashMap<Option<String>, Rc<BindingConfig>>;
+
 thread_local! {
-    /// Workload id → binding label (`None` for a plain import) → config.
-    static BINDINGS: RefCell<HashMap<String, HashMap<Option<String>, Rc<BindingConfig>>>> =
-        RefCell::new(HashMap::new());
+    /// Workload id → that workload's bindings.
+    static BINDINGS: RefCell<HashMap<String, WorkloadBindings>> = RefCell::new(HashMap::new());
     static MODELS: RefCell<HashMap<ModelKey, ModelSlot>> = RefCell::new(HashMap::new());
 }
 
@@ -184,9 +186,10 @@ pub struct StreamedGeneration {
 
 impl GuestGeneration for StreamedGeneration {
     async fn finish(&self) -> Result<Summary, Error> {
-        self.done.clone().await.unwrap_or_else(|_| {
-            Err(Error::Other("generation ended without reporting".into()))
-        })
+        self.done
+            .clone()
+            .await
+            .unwrap_or_else(|_| Err(Error::Other("generation ended without reporting".into())))
     }
 }
 

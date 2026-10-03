@@ -101,7 +101,9 @@ pub fn plan(
     };
     let max_tokens = options.max_tokens.unwrap_or(cfg.max_tokens);
     if max_tokens == 0 {
-        return Err(Error::InvalidRequest("max-tokens must be at least 1".into()));
+        return Err(Error::InvalidRequest(
+            "max-tokens must be at least 1".into(),
+        ));
     }
 
     Ok(Plan {
@@ -123,7 +125,9 @@ fn check_model(cfg: &BindingConfig, requested: Option<&str>) -> Result<(), Error
     match requested {
         None => Ok(()),
         Some(model) if model == cfg.model_id => Ok(()),
-        Some(model) if !cfg.allowed_models.is_empty() && !cfg.allowed_models.iter().any(|m| m == model) => {
+        Some(model)
+            if !cfg.allowed_models.is_empty() && !cfg.allowed_models.iter().any(|m| m == model) =>
+        {
             Err(Error::ModelNotAllowed(format!(
                 "`{model}` is not among this binding's allowed models"
             )))

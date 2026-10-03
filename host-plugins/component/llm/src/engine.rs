@@ -70,8 +70,11 @@ enum Released {
 impl LocalModel {
     pub fn load(cfg: &BindingConfig) -> Result<Self, String> {
         let device = Device::Cpu;
-        let mut file = std::fs::File::open(&cfg.model_path)
-            .map_err(|e| format!("{}: {e}", cfg.model_path))?;
+        // Buffered: GGUF metadata is many small values (Qwen3's carries its
+        // whole vocabulary), and unbuffered, every one is a WASI host call.
+        let file =
+            std::fs::File::open(&cfg.model_path).map_err(|e| format!("{}: {e}", cfg.model_path))?;
+        let mut file = std::io::BufReader::with_capacity(1 << 20, file);
         let content = gguf_file::Content::read(&mut file)
             .map_err(|e| format!("{} is not a readable GGUF file: {e}", cfg.model_path))?;
         let arch = content
@@ -198,12 +201,11 @@ impl LocalModel {
         // A turn that ended on its own still owes whatever was held back; one
         // cut by a stop sequence or a departed consumer owes nothing.
         if finish == Finish::Length || (finish == Finish::Stop && !stop_sequence) {
-            if let Some(text) = decoder.flush(&self.tokenizer)? {
-                if let Released::Cancelled =
+            if let Some(text) = decoder.flush(&self.tokenizer)?
+                && let Released::Cancelled =
                     release(reasoning, text, &mut stop, &mut at_mode_start, &mut emit).await
-                {
-                    return Ok(outcome(Finish::Cancelled, &generated));
-                }
+            {
+                return Ok(outcome(Finish::Cancelled, &generated));
             }
             let tail = stop.finish();
             if !tail.is_empty() && !emit(Piece::Text(tail)).await {
@@ -332,7 +334,10 @@ mod tests {
     #[ignore = "needs models/tiny: python3 scripts/make-test-model.py models/tiny"]
     fn generates_within_its_budget_and_repeats_exactly() {
         let mut model = load();
-        assert_eq!(model.context_length, 512, "context comes from GGUF metadata");
+        assert_eq!(
+            model.context_length, 512,
+            "context comes from GGUF metadata"
+        );
         let prompt = model
             .encode("<|im_start|>user\nhello<|im_end|>\n<|im_start|>assistant\n")
             .unwrap();
@@ -354,11 +359,12 @@ mod tests {
         let mut model = load();
         let prompt = model.encode("<|im_start|>user\nhi<|im_end|>\n").unwrap();
         let mut seen = 0;
-        let outcome = futures::executor::block_on(model.generate(&prompt, &params(64), async |_| {
-            seen += 1;
-            false
-        }))
-        .unwrap();
+        let outcome =
+            futures::executor::block_on(model.generate(&prompt, &params(64), async |_| {
+                seen += 1;
+                false
+            }))
+            .unwrap();
         assert_eq!(outcome.finish, Finish::Cancelled);
         assert_eq!(seen, 1);
         assert!(outcome.output_tokens < 64);

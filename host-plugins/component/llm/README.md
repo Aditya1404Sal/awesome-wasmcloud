@@ -2,7 +2,7 @@
 
 A wasmCloud **host component plugin** that serves the draft `wasmcloud:llm` interface from a model on the host's disk. It runs a quantized Qwen3 GGUF model on the CPU with [Candle](https://github.com/huggingface/candle), inside the plugin's own sandbox. A workload imports `wasmcloud:llm/inference` and gets completions, streamed or whole, without ever seeing the model files, the runtime, or where they live.
 
-> **Work in progress.** `wasmcloud:llm` is a draft interface, and this plugin needs host-component-plugin `volumes`, which are not in a wasmCloud release yet (see [Requirements](#requirements)). Expect both to change. The full path (HTTP workload → plugin → Candle → streamed answer) is verified with the tiny test model below; answers and speed with the real Qwen3-0.6B weights are not measured yet.
+> **Work in progress.** `wasmcloud:llm` is a draft interface, and this plugin needs host-component-plugin `volumes`, which are not in a wasmCloud release yet (see [Requirements](#requirements)). Expect both to change.
 
 ```
 workload ──wasmcloud:llm/inference──▶ llm plugin (own store) ──▶ Candle ──▶ /models/*.gguf
@@ -47,7 +47,7 @@ The plugin builds as a `wasm32-wasip1` core module that `wash build` wraps into 
 ./fetch-models.sh   # Qwen3-0.6B Q8_0 + tokenizer.json into models/qwen3-0.6b/
 ```
 
-The weights are roughly 600 MB and are not in git. Override `MODEL_URL` and `TOKENIZER_URL` to fetch another Qwen3 GGUF, then update `model-path` in the binding config to match.
+The weights are 639 MB and are not in git. Override `MODEL_URL` and `TOKENIZER_URL` to fetch another Qwen3 GGUF, then update `model-path` in the binding config to match.
 
 Without network access to Hugging Face, `scripts/make-test-model.py` writes a tiny, randomly initialized model with the same layout (`pip install gguf numpy tokenizers`). It exercises the whole pipeline, but its output is gibberish.
 
@@ -59,11 +59,26 @@ wash dev
 curl -N -d 'What is WebAssembly?' http://127.0.0.1:8000/
 ```
 
-`example/.wash/config.yaml` loads the plugin, mounts `../models/qwen3-0.6b` at `/models` in the plugin's store, and binds the workload's unlabeled `wasmcloud:llm` import to that model. The response streams as it is generated and ends with a usage line like:
+`example/.wash/config.yaml` loads the plugin, mounts `../models/qwen3-0.6b` at `/models` in the plugin's store, and binds the workload's unlabeled `wasmcloud:llm` import to that model. The response streams as it is generated and ends with a usage line. With Qwen3-0.6B (Q8_0):
 
+```console
+$ curl -N -d 'Explain in one short paragraph why sandboxing matters for running plugins.' http://127.0.0.1:8000/
+Sandboxing is important for running plugins because it isolates the execution of software in a controlled environment, preventing unauthorized access or data breaches. By limiting what can be done within a sandboxed system, developers and users can ensure that plugins do not interfere with other processes or compromise security. This enhances both privacy and performance by reducing potential risks associated with plugin-based applications.
+
+[qwen3-0.6b · FinishReason::Stop · 26 prompt + 73 generated tokens]
 ```
-[qwen3-0.6b · FinishReason::Stop · 14 prompt + 87 generated tokens]
-```
+
+## Performance
+
+Qwen3-0.6B Q8_0 on one core of a 4-core x86_64 cloud VM, measured through the example workload under `wash dev`, compared with the same Candle code built natively:
+
+| | Model load (first request) | Prompt + first token | Generation |
+|---|---|---|---|
+| This plugin (WASM, SIMD, one core) | 7.6 s | ~2.5 s | ~5.6 tokens/s |
+| Native, one core | 6.3 s | 2.5 s | 12.4 tokens/s |
+| Native, four cores | 1.7 s | 2.1 s | 34.9 tokens/s |
+
+The model loads once, on its first request; later requests skip the load. The sandbox costs about 2x against one native core; the larger gap is threads, which WASM components do not have. A GPU backend over `wasi:webgpu` is the way past both.
 
 ## Binding configuration
 
@@ -117,7 +132,7 @@ host:
 
 ## Limitations
 
-- CPU only, single-threaded, with WASM SIMD. A 0.6B model is the practical size.
+- CPU only, single-threaded, with WASM SIMD: about 5–6 tokens/s for a 0.6B model (see [Performance](#performance)), which makes 0.6B the practical size.
 - Qwen3 GGUF models only.
 - No tool calling, structured output, media input, or embeddings. Requests asking for them are refused with `invalid-request`.
 - Text streams as `string`, not as a variant of text, reasoning, and tool calls. The host relays only streams of scalars and strings between a plugin's store and a workload's.

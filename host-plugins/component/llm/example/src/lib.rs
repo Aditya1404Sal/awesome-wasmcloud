@@ -24,7 +24,10 @@ impl Guest for Component {
     async fn handle(request: Request) -> Result<Response, ErrorCode> {
         let prompt = read_prompt(request).await;
         if prompt.is_empty() {
-            return Ok(text_response(400, "send a prompt as the request body\n".into()));
+            return Ok(text_response(
+                400,
+                "send a prompt as the request body\n".into(),
+            ));
         }
 
         let messages = vec![Message::User(vec![ContentPart::Text(prompt)])];

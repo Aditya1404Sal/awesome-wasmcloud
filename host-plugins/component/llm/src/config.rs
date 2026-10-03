@@ -57,7 +57,10 @@ impl BindingConfig {
                 .map(|(_, v)| v.trim())
         };
 
-        if let Some((key, _)) = config.iter().find(|(k, _)| !KNOWN_KEYS.contains(&k.as_str())) {
+        if let Some((key, _)) = config
+            .iter()
+            .find(|(k, _)| !KNOWN_KEYS.contains(&k.as_str()))
+        {
             return Err(format!(
                 "unknown config key `{key}`; this backend reads {}",
                 KNOWN_KEYS.join(", ")
@@ -131,7 +134,9 @@ impl BindingConfig {
             ("tokenizer-path", &self.tokenizer_path),
         ] {
             let meta = std::fs::metadata(path).map_err(|e| {
-                format!("`{key}` {path}: {e}; is the directory mounted under the plugin's `volumes`?")
+                format!(
+                    "`{key}` {path}: {e}; is the directory mounted under the plugin's `volumes`?"
+                )
             })?;
             if !meta.is_file() {
                 return Err(format!("`{key}` {path} is not a file"));
@@ -198,15 +203,27 @@ mod tests {
                 "`model-path` is required",
             ),
             (
-                vec![("model-path", "/m.gguf"), ("tokenizer-path", "/t.json"), ("model_path", "/x")],
+                vec![
+                    ("model-path", "/m.gguf"),
+                    ("tokenizer-path", "/t.json"),
+                    ("model_path", "/x"),
+                ],
                 "unknown config key `model_path`",
             ),
             (
-                vec![("backend", "openai"), ("model-path", "/m.gguf"), ("tokenizer-path", "/t.json")],
+                vec![
+                    ("backend", "openai"),
+                    ("model-path", "/m.gguf"),
+                    ("tokenizer-path", "/t.json"),
+                ],
                 "runs `local` models only",
             ),
             (
-                vec![("model-path", "/m.gguf"), ("tokenizer-path", "/t.json"), ("max-tokens", "lots")],
+                vec![
+                    ("model-path", "/m.gguf"),
+                    ("tokenizer-path", "/t.json"),
+                    ("max-tokens", "lots"),
+                ],
                 "`max-tokens` has an invalid value",
             ),
             (
